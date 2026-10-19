@@ -11,7 +11,7 @@
 /**
 Libera a memória alocada dinamicamente para o dicionário.
 **/
-void df_free(dicionario* D){
+void df_free(index* D){
     if (D == NULL){
         return;
     }
@@ -19,8 +19,11 @@ void df_free(dicionario* D){
     df_free(D->left);
     df_free(D->right);
 
-    if (D->palavra != NULL){
-        free(D->palavra);
+    if (D->visibilidade != NULL){
+        free(D->visibilidade);
+    }
+    if (D->estado != NULL){
+        free(D->estado);
     }
     free(D);
 }
@@ -29,8 +32,8 @@ void df_free(dicionario* D){
 Obtém a altura de um nó. Usada para evitar receber NULL
 ao tentar acessar diretamente a altura de um nó.
 */
-int altura(dicionario* palavra) {
-    return palavra == NULL ? 0 : palavra->altura;
+int altura(index* indice) {
+    return indice == NULL ? 0 : indice->altura;
 }
 
 /*
@@ -44,45 +47,45 @@ int max(int a, int b) {
 /*
 Atualizando a altura de um nó
 */
-void atualizar(dicionario* palavra) {
-    palavra->altura = 1 + max(altura(palavra->left), altura(palavra->right));
+void atualizar(index* indice) {
+    indice->altura = 1 + max(altura(indice->left), altura(indice->right));
 }
 
 /*
 Calcula o fator de desbalanceamento de um nó
 */
-int fator(dicionario* palavra) {
-    return altura(palavra->left) - altura(palavra->right);
+int fator(index* indice) {
+    return altura(indice->left) - altura(indice->right);
 }
 
 /*
 Rotações para a esquerda
 */
-dicionario* rot_esq(dicionario* palavra1){
-    dicionario* palavra2 = palavra1->right;
-    palavra1->right = palavra2->left;
-    palavra2->left = palavra1;
-    atualizar(palavra1);  
-    atualizar(palavra2);
-    return palavra2;
+index* rot_esq(index* indice1){
+    index* indice2 = indice1->right;
+    indice1->right = indice2->left;
+    indice2->left = indice1;
+    atualizar(indice1);  
+    atualizar(indice2);
+    return indice2;
 }
 
 /*
 Rotações para a direita
 */
-dicionario* rot_dir(dicionario* palavra1){
-    dicionario* palavra2 = palavra1->left;
-    palavra1->left = palavra2->right;
-    palavra2->right = palavra1;
-    atualizar(palavra1);  
-    atualizar(palavra2);
-    return palavra2;
+index* rot_dir(index* indice1){
+    index* indice2 = indice1->left;
+    indice1->left = indice2->right;
+    indice2->right = indice1;
+    atualizar(indice1);  
+    atualizar(indice2);
+    return indice2;
 }
 
 /*
 Balanceia o dicionário
 */
-dicionario* balancear(dicionario* no) {
+index* balancear(index* no) {
     atualizar(no);
     int f = fator(no);
 
@@ -104,17 +107,23 @@ dicionario* balancear(dicionario* no) {
 /**
 Adiciona a palavra w com frequência f a sua devida posição no dicionário.
 **/
-int df_insert(dicionario** head, char x[10000], long f) {
+int df_insert(index** head, long x, char* nivel, char* estado) {
     if (*head == NULL) {
-        dicionario* novo = malloc(sizeof(dicionario));
+        index* novo = malloc(sizeof(index));
         if (novo == NULL) return 0;
-        novo->palavra = malloc(strlen(x) + 1);
-        if (novo->palavra == NULL) {
+        novo->visibilidade = malloc(strlen(nivel) + 1);
+        if (novo->visibilidade == NULL) {
             free(novo);
             return 0;
         }
-        strcpy(novo->palavra, x);
-        novo->frequencia = f;
+        novo->estado = malloc(strlen(estado) + 1);
+        if (novo->estado == NULL) {
+            free(novo);
+            return 0;
+        }
+        strcpy(novo->visibilidade, nivel);
+        strcpy(novo->estado, estado);
+        novo->identificador = x;
         novo->left = NULL;
         novo->right = NULL;
         novo->altura = 1;
@@ -122,157 +131,111 @@ int df_insert(dicionario** head, char x[10000], long f) {
         return 1;
     }
 
-    int cmp = strcmp(x, (*head)->palavra);
-    if (cmp == 0) {
-        (*head)->frequencia = f;
+    // Ignorando se o x já estiver no índice
+    int ap = (*head) -> identificador;
+    if(ap == x) return 1;
+
+    int r;
+    if (ap < x) r = df_insert(&(*head)->left, x, nivel, estado);
+    else        r = df_insert(&(*head)->right, x, nivel, estado);
+
+    *head = balancear(*head);
+    return r;
+}
+
+/*
+Atualiza o documento com identificador x, modificando sua visibilidade
+e nível. Se x não estiver no índex, a operação é ignorada.
+*/
+int df_atualizar(index** head, long x, char* visibilidade, char* estado){
+    if (*head == NULL) {
+        return 0;
+    }
+
+    int ap = (*head) -> identificador;
+    if(ap == x){
+        free((*head)->visibilidade);
+        free((*head)->estado);
+        strcpy((*head)->visibilidade, visibilidade);
+        strcpy((*head)->estado, estado);
+        (*head)->identificador = x;
         return 1;
     }
 
     int r;
-    if (cmp < 0) r = df_insert(&(*head)->left, x, f);
-    else         r = df_insert(&(*head)->right, x, f);
+    if (ap < x) r = df_atualizar(&(*head)->left, x, visibilidade, estado);
+    else        r = df_atualizar(&(*head)->right, x, visibilidade, estado);
 
-    *head = balancear(*head);
     return r;
 }
 
 /*Imprime a palavra x e sua frequência. Se não houver a 
 palavra no dicionário, imprime uma mensagem de erro.*/
-int df_search(dicionario* head, char x[10000]) {
-    dicionario* suporte = head;
-
-    while (suporte != NULL) {
-        int cmp = strcmp(x, suporte->palavra);
-
-        if (cmp == 0) {
-            printf("%s %ld\n", x, suporte->frequencia);
+int df_search(index* head, long x){
+    index* apoio = head;
+    while(apoio!=NULL){
+        } if(apoio->identificador>x){
+            apoio = apoio ->left;
+        } else if(apoio->identificador<x){
+            apoio = apoio -> right;
+        } else {
+            printf("%d, %s, %s\n", apoio->identificador, apoio->visibilidade, apoio->estado);
             return 1;
-        }
-        else if (cmp > 0) {
-            suporte = suporte->right;
-        }
-        else {
-            suporte = suporte->left;
-        }
     }
-
-    printf("%s not found.\n", x);
+    printf("%d não existe\n");
     return 0;
 }
 
 /*
-Apoio para o qsort
+Imprime os identificadores dos documentos da árvore em ordem
+crescente (busca in-order) em uma única linha separados por expaço.
+Se o índice estiver vazio, imprime índice vazio.
+
+Exemṕlo de saída:
+documentos: 1 2 3 .........
 */
-int comparar(const void* a, const void* b) {
-    const dicionario* x = *(dicionario* const*) a;
-    const dicionario* y = *(dicionario* const*) b;
-
-    if (x->frequencia != y->frequencia) {
-        return (y->frequencia > x->frequencia) - (y->frequencia < x->frequencia);
+void df_print(index* head){
+    if(head==NULL){
+        printf("indice vazio\n");
+        return;
     }
-    return strcmp(x->palavra, y->palavra);
-}
-
-/*
-Percorre a árvore e armazena em V os structs dicionário cuja palavra
-tem o prefixo x que está sendo procurado.
-*/
-void apoio_complete(dicionario* head, char* x, dicionario** V, int* controle) {
-    if (head == NULL) return;
-
-    int cmp = strncmp(x, head->palavra, strlen(x));
-
-    if (cmp == 0) {
-        apoio_complete(head->left, x, V, controle);
-        if (V != NULL) V[*controle] = head;
-        (*controle)++;
-        apoio_complete(head->right, x, V, controle);
-    }
-    else if (cmp > 0) apoio_complete(head->right, x, V, controle);
-    else apoio_complete(head->left, x, V, controle);
-}
-
-/*
-Primeiro, procura todas as palavras no dicionário com o
-prefixo x e armazena as structs que as contén em um vetor 
-V. Depois, usa qsort para colocá-los na
-ordem em que deverão ser impressos e, por fim, imprime a
-saída.
-*/
-int df_autocomplete(dicionario* head, char x[10000], long k) {
-    int n = 0;
-    apoio_complete(head, x, NULL, &n);
-
-    if (n == 0) {
-        printf("nothing for %s.\n", x);
-        return 0;
-    }
-
-    dicionario** V = malloc(n * sizeof(dicionario*));
-    if (V == NULL) return 0;
-
-    n = 0;
-    apoio_complete(head, x, V, &n);
-
-    qsort(V, n, sizeof(dicionario*), comparar);
-    for (int i = 0; i < n && i < k; i++)
-        printf("(%s,%ld) ", V[i]->palavra, V[i]->frequencia);
+    printf("documentos: ");
+    imprimir_indices(head);
     printf("\n");
-
-    free(V);
-    return 1;
 }
 
-int df_delete(dicionario** head, char x[10000]) {
-    if (*head == NULL) return 0;
-
-    dicionario* apoio = *head;
-    int cmp = strcmp(x, apoio->palavra);
-    int r;
-
-    if (cmp < 0) {
-        r = df_delete(&apoio->left, x);
+void imprimir_indices(index* head){
+    index* apoio = head;
+    if(head == NULL){
+        return;
     }
-    else if (cmp > 0) {
-        r = df_delete(&apoio->right, x);
-    }
-    else if (apoio->left == NULL || apoio->right == NULL) {
-        *head = (apoio->left != NULL) ? apoio->left : apoio->right;
-        free(apoio->palavra);
-        free(apoio);
-        return 1;
-    }
-    else {
-        dicionario* suc = apoio->right;
-        while (suc->left != NULL) suc = suc->left;
+    imprimir_indices(head->left);
+    printf("%ld ", &head->identificador);
+    imprimir_indices(head->right);
+}
+/*
+Imprime o número de documentos caragorizando por estado.
 
-        char* copia = malloc(strlen(suc->palavra) + 1);
-        if (copia == NULL) return 0;
-        strcpy(copia, suc->palavra);
-        long freq = suc->frequencia;
-
-        r = df_delete(&apoio->right, copia);
-
-        free(apoio->palavra);
-        apoio->palavra = copia;
-        apoio->frequencia = freq;
-    }
-
-    *head = balancear(*head);
-    return r;
+Exemplo de saída:
+atualizado: 1, desatualizado: 2, obsoleto: 3
+*/
+void df_print_estados(index* head){
+    int atualizado=0, desatualizado=0, obsoleto=0;
+    contar_estados(head, &atualizado, &desatualizado, &obsoleto);
+    printf("atualizado: %d, desatualizado: %d, obsoleto: %d\n", &atualizado, &desatualizado, &obsoleto);
 }
 
-/*Imprime as palavras no dicionário em ordem lexicográfica, 
-em uma única linha.*/
-void df_print(dicionario* head, int k){
-    if (head == NULL){
-        if(k==0){
-            printf("the dictionary is empty.");
-        }
-        return ;
-    } 
-    k++;
-    df_print(head->left, k);
-    printf("%s ", head->palavra);
-    df_print(head->right, k);
+int contar_estados(index* head, int* atualizado, int* desatualizado, int* obsoleto){
+    if(head==NULL){
+        return atualizado, desatualizado, obsoleto;
+    }
+    contar_estados(head->left, atualizado, desatualizado, obsoleto);
+    if(strcmp(head->estado, "atualizado")==0){
+        *atualizado++;
+    } else if(strcmp(head->estado, "desatualizado")==0){
+        *desatualizado++;
+    }else{
+        *obsoleto++;
+    }
+    contar_estados(head->right, atualizado, desatualizado, obsoleto);
 }

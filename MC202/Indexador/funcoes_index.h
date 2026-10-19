@@ -11,18 +11,16 @@ typedef struct index{
     long identificador; 
     char *visibilidade;  
     char *estado;  
-    struct dicionario* left; 
-    struct dicionario* right; 
+    int altura;
+    struct index* left; 
+    struct index* right; 
 } index;
 
-void df_free(dicionario* D);
-
-int df_search(dicionario* D, char x[10000]);
-int df_autocomplete(dicionario* D, char x[10000], long k);
-
-int df_insert(dicionario** head, char x[10000], long f);
-int df_delete(dicionario** head, char x[10000]);
-
-void df_print(dicionario* D, int k);
+void df_free(index* D);
+int df_insert(index** head, long x, char* visibilidade, char* estado);
+int df_atualizar(index** head, long x, char* visibilidade, char* estado);
+int df_search(index* head, long x);
+void df_print(index* head);
+void df_print_estados(index* head);
 
 #endif
