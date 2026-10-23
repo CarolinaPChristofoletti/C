@@ -11,7 +11,7 @@
 /**
 Libera a memória alocada dinamicamente para o dicionário.
 **/
-void df_free(index* D){
+void df_free(Index* D){
     if (D == NULL){
         return;
     }
@@ -32,7 +32,7 @@ void df_free(index* D){
 Obtém a altura de um nó. Usada para evitar receber NULL
 ao tentar acessar diretamente a altura de um nó.
 */
-int altura(index* indice) {
+int altura(Index* indice) {
     return indice == NULL ? 0 : indice->altura;
 }
 
@@ -47,22 +47,22 @@ int max(int a, int b) {
 /*
 Atualizando a altura de um nó
 */
-void atualizar(index* indice) {
+void atualizar(Index* indice) {
     indice->altura = 1 + max(altura(indice->left), altura(indice->right));
 }
 
 /*
 Calcula o fator de desbalanceamento de um nó
 */
-int fator(index* indice) {
+int fator(Index* indice) {
     return altura(indice->left) - altura(indice->right);
 }
 
 /*
 Rotações para a esquerda
 */
-index* rot_esq(index* indice1){
-    index* indice2 = indice1->right;
+Index* rot_esq(Index* indice1){
+    Index* indice2 = indice1->right;
     indice1->right = indice2->left;
     indice2->left = indice1;
     atualizar(indice1);  
@@ -73,8 +73,8 @@ index* rot_esq(index* indice1){
 /*
 Rotações para a direita
 */
-index* rot_dir(index* indice1){
-    index* indice2 = indice1->left;
+Index* rot_dir(Index* indice1){
+    Index* indice2 = indice1->left;
     indice1->left = indice2->right;
     indice2->right = indice1;
     atualizar(indice1);  
@@ -85,7 +85,7 @@ index* rot_dir(index* indice1){
 /*
 Balanceia o dicionário
 */
-index* balancear(index* no) {
+Index* balancear(Index* no) {
     atualizar(no);
     int f = fator(no);
 
@@ -107,9 +107,9 @@ index* balancear(index* no) {
 /**
 Adiciona a palavra w com frequência f a sua devida posição no dicionário.
 **/
-int df_insert(index** head, long x, char* nivel, char* estado) {
+int df_insert(Index** head, long x, char* nivel, char* estado) {
     if (*head == NULL) {
-        index* novo = malloc(sizeof(index));
+        Index* novo = malloc(sizeof(Index));
         if (novo == NULL) return 0;
         novo->visibilidade = malloc(strlen(nivel) + 1);
         if (novo->visibilidade == NULL) {
@@ -147,7 +147,7 @@ int df_insert(index** head, long x, char* nivel, char* estado) {
 Atualiza o documento com identificador x, modificando sua visibilidade
 e nível. Se x não estiver no índex, a operação é ignorada.
 */
-int df_atualizar(index** head, long x, char* visibilidade, char* estado){
+int df_atualizar(Index** head, long x, char* visibilidade, char* estado){
     if (*head == NULL) {
         return 0;
     }
@@ -171,18 +171,19 @@ int df_atualizar(index** head, long x, char* visibilidade, char* estado){
 
 /*Imprime a palavra x e sua frequência. Se não houver a 
 palavra no dicionário, imprime uma mensagem de erro.*/
-int df_search(index* head, long x){
-    index* apoio = head;
+int df_search(Index* head, long x){
+    Index* apoio = head;
     while(apoio!=NULL){
-        } if(apoio->identificador>x){
+        if(apoio->identificador>x){
             apoio = apoio ->left;
         } else if(apoio->identificador<x){
             apoio = apoio -> right;
         } else {
-            printf("%d, %s, %s\n", apoio->identificador, apoio->visibilidade, apoio->estado);
-            return 1;
+            printf("%ld, %s, %s\n", apoio->identificador, apoio->visibilidade, apoio->estado);
+            return 1; 
+        }
     }
-    printf("%d não existe\n");
+    printf("%ld não existe\n", x);
     return 0;
 }
 
@@ -194,7 +195,16 @@ Se o índice estiver vazio, imprime índice vazio.
 Exemṕlo de saída:
 documentos: 1 2 3 .........
 */
-void df_print(index* head){
+void imprimir_indices(Index* head){
+    if(head == NULL){
+        return;
+    }
+    imprimir_indices(head->left);
+    printf("%ld ", head->identificador);
+    imprimir_indices(head->right);
+}
+
+void df_print(Index* head){
     if(head==NULL){
         printf("indice vazio\n");
         return;
@@ -204,38 +214,30 @@ void df_print(index* head){
     printf("\n");
 }
 
-void imprimir_indices(index* head){
-    index* apoio = head;
-    if(head == NULL){
-        return;
-    }
-    imprimir_indices(head->left);
-    printf("%ld ", &head->identificador);
-    imprimir_indices(head->right);
-}
 /*
 Imprime o número de documentos caragorizando por estado.
 
 Exemplo de saída:
 atualizado: 1, desatualizado: 2, obsoleto: 3
 */
-void df_print_estados(index* head){
-    int atualizado=0, desatualizado=0, obsoleto=0;
-    contar_estados(head, &atualizado, &desatualizado, &obsoleto);
-    printf("atualizado: %d, desatualizado: %d, obsoleto: %d\n", &atualizado, &desatualizado, &obsoleto);
-}
 
-int contar_estados(index* head, int* atualizado, int* desatualizado, int* obsoleto){
+void contar_estados(Index* head, int* atualizado, int* desatualizado, int* obsoleto){
     if(head==NULL){
-        return atualizado, desatualizado, obsoleto;
+        return;
     }
     contar_estados(head->left, atualizado, desatualizado, obsoleto);
     if(strcmp(head->estado, "atualizado")==0){
-        *atualizado++;
+        (*atualizado)++;
     } else if(strcmp(head->estado, "desatualizado")==0){
-        *desatualizado++;
+        (*desatualizado)++;
     }else{
-        *obsoleto++;
+        (*obsoleto)++;
     }
     contar_estados(head->right, atualizado, desatualizado, obsoleto);
+}
+
+void df_print_estados(Index* head){
+    int atualizado=0, desatualizado=0, obsoleto=0;
+    contar_estados(head, &atualizado, &desatualizado, &obsoleto);
+    printf("atualizado: %d, desatualizado: %d, obsoleto: %d\n", atualizado, desatualizado, obsoleto);
 }

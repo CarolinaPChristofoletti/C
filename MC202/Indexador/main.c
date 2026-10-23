@@ -11,28 +11,28 @@ int main(void) {
   char cmd[2], nivel[10], estado[14];
   long x;
 
-  index* head = NULL;
+  Index* head = NULL;
 
   while(1){
     if (scanf("%s", cmd) != 1) exit(1);
 
     if (strcmp(cmd,"i") == 0) {
       if (scanf("%ld %s %s", &x, nivel, estado) != 3) exit(1);
-      df_insert(head, x, nivel, estado);
+      df_insert(&head, x, nivel, estado);
     }
 
     else if (strcmp(cmd,"a") == 0) {
       if (scanf("%ld %s %s", &x, nivel, estado) != 3) exit(1);
-      df_atualizar(head, x, nivel, estado);
+      df_atualizar(&head, x, nivel, estado);
     }
 
     else if (strcmp(cmd,"b") == 0) {
-      if (scanf("%ld ", &x) != 1) exit(1);
+      if (scanf(" %ld", &x) != 1) exit(1);
       df_search(head, x);
     }
 
     else if (strcmp(cmd,"l") == 0) {
-      df_print_estados(head);
+      df_print(head);
     }
 
     else if (strcmp(cmd,"t") == 0) {
