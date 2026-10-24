@@ -118,6 +118,8 @@ int df_insert(Index** head, long x, char* nivel, char* estado) {
         }
         novo->estado = malloc(strlen(estado) + 1);
         if (novo->estado == NULL) {
+            free(novo->visibilidade);
+            free(novo->estado);
             free(novo);
             return 0;
         }
@@ -132,11 +134,11 @@ int df_insert(Index** head, long x, char* nivel, char* estado) {
     }
 
     // Ignorando se o x já estiver no índice
-    int ap = (*head) -> identificador;
+    long ap = (*head) -> identificador;
     if(ap == x) return 1;
 
     int r;
-    if (ap < x) r = df_insert(&(*head)->left, x, nivel, estado);
+    if (ap > x) r = df_insert(&(*head)->left, x, nivel, estado);
     else        r = df_insert(&(*head)->right, x, nivel, estado);
 
     *head = balancear(*head);
@@ -148,22 +150,18 @@ Atualiza o documento com identificador x, modificando sua visibilidade
 e nível. Se x não estiver no índex, a operação é ignorada.
 */
 int df_atualizar(Index** head, long x, char* visibilidade, char* estado){
-    if (*head == NULL) {
+    if ((*head) == NULL) {
         return 0;
     }
-
-    int ap = (*head) -> identificador;
+    long ap = (*head) -> identificador;
     if(ap == x){
-        free((*head)->visibilidade);
-        free((*head)->estado);
         strcpy((*head)->visibilidade, visibilidade);
         strcpy((*head)->estado, estado);
-        (*head)->identificador = x;
         return 1;
     }
 
     int r;
-    if (ap < x) r = df_atualizar(&(*head)->left, x, visibilidade, estado);
+    if (ap > x) r = df_atualizar(&(*head)->left, x, visibilidade, estado);
     else        r = df_atualizar(&(*head)->right, x, visibilidade, estado);
 
     return r;
@@ -183,7 +181,7 @@ int df_search(Index* head, long x){
             return 1; 
         }
     }
-    printf("%ld não existe\n", x);
+    printf("%ld nao existe\n", x);
     return 0;
 }
 
