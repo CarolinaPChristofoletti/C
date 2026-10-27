@@ -9,7 +9,7 @@
 
 
 /**
-Libera a memória alocada dinamicamente para o dicionário.
+Libera a memória alocada dinamicamente para o índice.
 **/
 void df_free(Index* D){
     if (D == NULL){
@@ -19,12 +19,6 @@ void df_free(Index* D){
     df_free(D->left);
     df_free(D->right);
 
-    if (D->visibilidade != NULL){
-        free(D->visibilidade);
-    }
-    if (D->estado != NULL){
-        free(D->estado);
-    }
     free(D);
 }
 
@@ -65,8 +59,8 @@ Index* rot_esq(Index* indice1){
     Index* indice2 = indice1->right;
     indice1->right = indice2->left;
     indice2->left = indice1;
-    atualizar(indice1);  
-    atualizar(indice2);
+    atualizar(indice2);  
+    atualizar(indice1);
     return indice2;
 }
 
@@ -77,8 +71,8 @@ Index* rot_dir(Index* indice1){
     Index* indice2 = indice1->left;
     indice1->left = indice2->right;
     indice2->right = indice1;
-    atualizar(indice1);  
-    atualizar(indice2);
+    atualizar(indice2);  
+    atualizar(indice1);
     return indice2;
 }
 
@@ -107,29 +101,26 @@ Index* balancear(Index* no) {
 /**
 Adiciona a palavra w com frequência f a sua devida posição no dicionário.
 **/
-int df_insert(Index** head, long x, char* nivel, char* estado) {
+int df_insert(Index** head, long x, char* nivel, char* estado, int* atualizado, int* desatualizado, int* obsoleto) {
     if (*head == NULL) {
         Index* novo = malloc(sizeof(Index));
-        if (novo == NULL) return 0;
-        novo->visibilidade = malloc(strlen(nivel) + 1);
-        if (novo->visibilidade == NULL) {
-            free(novo);
-            return 0;
-        }
-        novo->estado = malloc(strlen(estado) + 1);
-        if (novo->estado == NULL) {
-            free(novo->visibilidade);
-            free(novo->estado);
-            free(novo);
-            return 0;
-        }
+
         strcpy(novo->visibilidade, nivel);
         strcpy(novo->estado, estado);
+
         novo->identificador = x;
         novo->left = NULL;
         novo->right = NULL;
         novo->altura = 1;
         *head = novo;
+
+        if(strcmp(novo->estado, "atualizado")==0)
+            (*atualizado)++;
+        else if(strcmp(novo->estado, "desatualizado")==0)
+            (*desatualizado)++;
+        else
+            (*obsoleto)++;
+
         return 1;
     }
 
@@ -138,8 +129,8 @@ int df_insert(Index** head, long x, char* nivel, char* estado) {
     if(ap == x) return 1;
 
     int r;
-    if (ap > x) r = df_insert(&(*head)->left, x, nivel, estado);
-    else        r = df_insert(&(*head)->right, x, nivel, estado);
+    if (ap > x) r = df_insert(&(*head)->left, x, nivel, estado, atualizado, desatualizado, obsoleto);
+    else        r = df_insert(&(*head)->right, x, nivel, estado, atualizado, desatualizado, obsoleto);
 
     *head = balancear(*head);
     return r;
@@ -149,20 +140,37 @@ int df_insert(Index** head, long x, char* nivel, char* estado) {
 Atualiza o documento com identificador x, modificando sua visibilidade
 e nível. Se x não estiver no índex, a operação é ignorada.
 */
-int df_atualizar(Index** head, long x, char* visibilidade, char* estado){
+int df_atualizar(Index** head, long x, char* visibilidade, char* estado, int* atualizado, int* desatualizado, int* obsoleto){
     if ((*head) == NULL) {
         return 0;
     }
     long ap = (*head) -> identificador;
+
     if(ap == x){
+
+        if (strcmp((*head)->estado, "atualizado") == 0) 
+            (*atualizado)--;
+        else if (strcmp((*head)->estado, "desatualizado") == 0) 
+            (*desatualizado)--;
+        else 
+            (*obsoleto)--;
+
         strcpy((*head)->visibilidade, visibilidade);
-        strcpy((*head)->estado, estado);
+        strcpy((*head)->estado , estado);
+
+        if (strcmp((*head)->estado, "atualizado") == 0) 
+            (*atualizado)++;
+        else if (strcmp((*head)->estado, "desatualizado") == 0) 
+            (*desatualizado)++;
+        else 
+            (*obsoleto)++;
+
         return 1;
     }
 
     int r;
-    if (ap > x) r = df_atualizar(&(*head)->left, x, visibilidade, estado);
-    else        r = df_atualizar(&(*head)->right, x, visibilidade, estado);
+    if (ap > x) r = df_atualizar(&(*head)->left, x, visibilidade, estado, atualizado, desatualizado, obsoleto);
+    else        r = df_atualizar(&(*head)->right, x, visibilidade, estado, atualizado, desatualizado, obsoleto);
 
     return r;
 }
@@ -212,30 +220,6 @@ void df_print(Index* head){
     printf("\n");
 }
 
-/*
-Imprime o número de documentos caragorizando por estado.
-
-Exemplo de saída:
-atualizado: 1, desatualizado: 2, obsoleto: 3
-*/
-
-void contar_estados(Index* head, int* atualizado, int* desatualizado, int* obsoleto){
-    if(head==NULL){
-        return;
-    }
-    contar_estados(head->left, atualizado, desatualizado, obsoleto);
-    if(strcmp(head->estado, "atualizado")==0){
-        (*atualizado)++;
-    } else if(strcmp(head->estado, "desatualizado")==0){
-        (*desatualizado)++;
-    }else{
-        (*obsoleto)++;
-    }
-    contar_estados(head->right, atualizado, desatualizado, obsoleto);
-}
-
-void df_print_estados(Index* head){
-    int atualizado=0, desatualizado=0, obsoleto=0;
-    contar_estados(head, &atualizado, &desatualizado, &obsoleto);
+void df_print_estados(int atualizado, int desatualizado, int obsoleto){
     printf("atualizado: %d, desatualizado: %d, obsoleto: %d\n", atualizado, desatualizado, obsoleto);
 }

@@ -9,18 +9,18 @@
 
 typedef struct Index{
     long identificador; 
-    char *visibilidade;  
-    char *estado;  
+    char visibilidade[10];  
+    char estado[14];  
     int altura;
     struct Index* left; 
     struct Index* right; 
 } Index;
 
 void df_free(Index* D);
-int df_insert(Index** head, long x, char* visibilidade, char* estado);
-int df_atualizar(Index** head, long x, char* visibilidade, char* estado);
+int df_insert(Index** head, long x, char* visibilidade, char* estado, int* atualizado, int* desatualizado, int* obsoleto);
+int df_atualizar(Index** head, long x, char* visibilidade, char* estado, int* atualizado, int* desatualizado, int* obsoleto);
 int df_search(Index* head, long x);
 void df_print(Index* head);
-void df_print_estados(Index* head);
+void df_print_estados(int atualizado, int desatualizado, int obsoleto);
 
 #endif

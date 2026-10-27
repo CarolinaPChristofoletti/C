@@ -8,6 +8,7 @@
 
 int main(void) {
 
+  int atualizado=0, desatualizado=0, obsoleto=0;
   char cmd[2], nivel[10], estado[14];
   long x;
 
@@ -18,12 +19,12 @@ int main(void) {
 
     if (strcmp(cmd,"i") == 0) {
       if (scanf("%ld %s %s", &x, nivel, estado) != 3) exit(1);
-      df_insert(&head, x, nivel, estado);
+      df_insert(&head, x, nivel, estado, &atualizado, &desatualizado, &obsoleto);
     }
 
     else if (strcmp(cmd,"a") == 0) {
       if (scanf("%ld %s %s", &x, nivel, estado) != 3) exit(1);
-      df_atualizar(&head, x, nivel, estado);
+      df_atualizar(&head, x, nivel, estado, &atualizado, &desatualizado, &obsoleto);
     }
 
     else if (strcmp(cmd,"b") == 0) {
@@ -36,7 +37,7 @@ int main(void) {
     }
 
     else if (strcmp(cmd,"t") == 0) {
-      df_print_estados(head);
+      df_print_estados(atualizado, desatualizado, obsoleto);
     }
 
     else if (strcmp(cmd,"f") == 0) {
