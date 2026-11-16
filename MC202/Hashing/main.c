@@ -19,13 +19,11 @@ typedef struct par{
     int valor;
 } par;
 
-par *tabela1 = NULL, *tabela2 = NULL;
-int n = 0;
-int ocupacao1 = 0, ocupacao2 = 0;
-
-void inserir_chave(int chave, int valor, int limite);
-void redimensionar(void);
-void verificar_tamanho(void);
+// Definindo as funções antes para conseguir chamar uma dentro da outra da forma como precisava
+void inserir_chave(par** tabela1, par** tabela2, int chave, int valor, int limite,
+int* ocupacao1, int* ocupacao2, int* n);
+void redimensionar(par** tabela1, par** tabela2, int* n, int* ocupacao1, int* ocupacao2);
+void verificar_tamanho(int* n, int* ocupacao1, int* ocupacao2, par** tabela1, par** tabela2);
 
 par* criar_tabela(int n){
     // Cria tabelas com n pares
@@ -44,6 +42,7 @@ void df_free(par* tabela, int n){
 long long h1(int x, int n){
     // x é a chave e n é o tamanho da tabela
     long long posicao = (((2LL*x+1)%1000000007LL)%n);
+    // LL para não estourar int e um primo grande para distribuir os valores pela tabela
     return posicao;
 }
 
@@ -53,13 +52,14 @@ long long h2(int x, int n){
 }
 
 
-void verificar_tamanho(void){
-    if(ocupacao1>=0.7*n || ocupacao2 >= 0.7*n){
-        redimensionar();
+void verificar_tamanho(int* n, int* ocupacao1, int* ocupacao2, par** tabela1, par** tabela2){
+    if((*ocupacao1)>=0.7*(*n) || (*ocupacao2) >= 0.7*(*n)){
+        redimensionar(tabela1, tabela2, n, ocupacao1, ocupacao2);
     }
 }
 
-void inserir_chave(int chave, int valor, int limite){
+void inserir_chave(par** tabela1, par** tabela2, int chave, int valor, int limite,
+int* ocupacao1, int* ocupacao2, int* n){
     // Insere o par (chave, valor). Cada chave deve ser inserida
     // uma única vez VERIFICAR SE CHAVE JÁ NÃO ESTÁ NA TABELA
     int contador;
@@ -67,70 +67,71 @@ void inserir_chave(int chave, int valor, int limite){
     contador = 0;
     while(contador<=limite){
         // Verifica se a chave está em alguma das tabelas
-        if(tabela1[h1(chave, n)].chave == chave){
-            tabela1[h1(chave, n)].valor = valor;
+        if((*tabela1)[h1(chave, *n)].chave == chave){
+            (*tabela1)[h1(chave, *n)].valor = valor;
             return;
         }
-        else if(tabela2[h2(chave, n)].chave == chave){
-            tabela2[h2(chave, n)].valor = valor;
+        else if((*tabela2)[h2(chave, *n)].chave == chave){
+            (*tabela2)[h2(chave, *n)].valor = valor;
             return;
         }
 
         // Verifica se a posição analisada está vazia na tabela 1
-        int p = h1(chave, n);
-        if(tabela1[p].chave == -1 || tabela1[p].chave == -2){
-            tabela1[p].chave = chave;
-            tabela1[p].valor = valor;
-            ocupacao1++;
-            verificar_tamanho();
+        int p = h1(chave, *n);
+        if((*tabela1)[p].chave == -1 || (*tabela1)[p].chave == -2){
+            (*tabela1)[p].chave = chave;
+            (*tabela1)[p].valor = valor;
+            (*ocupacao1)++;
+            verificar_tamanho(n, ocupacao1, ocupacao2, tabela1, tabela2);
             return;
         }
 
-        int chave_apoio = tabela1[p].chave;
-        int valor_apoio = tabela1[p].valor;
-        tabela1[p].chave = chave;
-        tabela1[p].valor = valor;
+        int chave_apoio = (*tabela1)[p].chave;
+        int valor_apoio = (*tabela1)[p].valor;
+        (*tabela1)[p].chave = chave;
+        (*tabela1)[p].valor = valor;
         chave = chave_apoio;
         valor = valor_apoio;
         contador++;
 
-        p = h2(chave, n);
-        if(tabela2[p].chave == -1 || tabela2[p].chave == -2){
-            tabela2[p].chave = chave;
-            tabela2[p].valor = valor;
-            ocupacao2++;
-            verificar_tamanho();
+        p = h2(chave, *n);
+        if((*tabela2)[p].chave == -1 || (*tabela2)[p].chave == -2){
+            (*tabela2)[p].chave = chave;
+            (*tabela2)[p].valor = valor;
+            (*ocupacao2)++;
+            verificar_tamanho(n, ocupacao1, ocupacao2, tabela1, tabela2);
             return;
         }
 
-        chave_apoio = tabela2[p].chave;
-        valor_apoio = tabela2[p].valor;
-        tabela2[p].chave = chave;
-        tabela2[p].valor = valor;
+        chave_apoio = (*tabela2)[p].chave;
+        valor_apoio = (*tabela2)[p].valor;
+        (*tabela2)[p].chave = chave;
+        (*tabela2)[p].valor = valor;
         chave = chave_apoio;
         valor = valor_apoio;
         contador++;
     }
-    redimensionar();
+    redimensionar(tabela1, tabela2, n, ocupacao1, ocupacao2);
     goto inicio_geral;
 }
 
 
-void redimensionar(void){
-    par* antiga1 = tabela1;
-    par* antiga2 = tabela2;
-    int n_antigo = n;
-    n = 2*n_antigo;
-    tabela1 = criar_tabela(n);
-    tabela2 = criar_tabela(n);
-    ocupacao1 = 0;
-    ocupacao2 = 0;
+void redimensionar(par** tabela1, par** tabela2, int* n, int* ocupacao1, int* ocupacao2){
+    par* antiga1 = *tabela1;
+    par* antiga2 = *tabela2;
+    int n_antigo = *n;
+    *n = 2*n_antigo;
+    // Usa os mesmos apontadores para par ("tabelas") já definidos antes para redimensionar para o dobro do tamanho
+    *tabela1 = criar_tabela(*n);
+    *tabela2 = criar_tabela(*n);
+    *ocupacao1 = 0;
+    *ocupacao2 = 0;
     for(int i = 0; i<n_antigo; i++){
         if(antiga1[i].chave != -1 && antiga1[i].chave != -2){
-            inserir_chave(antiga1[i].chave, antiga1[i].valor, 15);
+            inserir_chave(tabela1, tabela2, antiga1[i].chave, antiga1[i].valor, 15, ocupacao1, ocupacao2, n);
         }
         if(antiga2[i].chave != -1 && antiga2[i].chave != -2){
-            inserir_chave(antiga2[i].chave, antiga2[i].valor, 15);
+            inserir_chave(tabela1, tabela2, antiga2[i].chave, antiga2[i].valor, 15, ocupacao1, ocupacao2, n);
         }
     }
     df_free(antiga1, n_antigo);
@@ -138,7 +139,7 @@ void redimensionar(void){
     return;
 }
 
-int buscar_chave(int chave, int* valor){
+int buscar_chave(par* tabela1, par* tabela2, int chave, int n, int* valor){
     if(tabela1[h1(chave, n)].chave == chave){
         *valor = tabela1[h1(chave, n)].valor;
         return 1;
@@ -150,32 +151,35 @@ int buscar_chave(int chave, int* valor){
     return 0;
 }
 
-void remover_chave(int chave){
+void remover_chave(par* tabela1, par* tabela2, int chave, int n, int* ocupacao1, int* ocupacao2){
     // Remove o par com a chave dada da tabela
     // Como na função de busca apenas a chave é verificada, não
     // é necessário alterar o valor ligado a ela.
     if(tabela1[h1(chave, n)].chave == chave){
         tabela1[h1(chave, n)].chave = -2;
-        ocupacao1--;
+        (*ocupacao1)--;
         return;
     }
     else if (tabela2[h2(chave, n)].chave == chave){
         tabela2[h2(chave, n)].chave = -2;
-        ocupacao2--;
+        (*ocupacao2)--;
         return;
     }
 }
 
-void imprimir_linha(int chave){
+void imprimir_linha(par* tabela1, par* tabela2, int chave, int n){
     int valor;
-    if(!buscar_chave(chave, &valor)) printf("%d -> !E\n", chave);
+    if(!buscar_chave(tabela1, tabela2, chave, n, &valor)) printf("%d -> !E\n", chave);
     else printf("%d -> %d\n", chave, valor);
 }
 
 int main(void){
     int chave=0, valor=0;
     char caractere;
+    int ocupacao1 = 0, ocupacao2 = 0;
     int LIMITE = 15;
+    int n=0;
+    par *tabela1 = NULL, *tabela2 = NULL;
     while(scanf(" %c", &caractere)==1 && caractere!='f'){
         if(caractere=='c'){
             df_free(tabela1, n);
@@ -188,15 +192,15 @@ int main(void){
         }
         else if(caractere=='i'){
             scanf("%d %d", &chave, &valor);
-            inserir_chave(chave, valor, LIMITE);
+            inserir_chave(&tabela1, &tabela2, chave, valor, LIMITE, &ocupacao1, &ocupacao2, &n);
         }
         else if(caractere=='r'){
             scanf("%d", &chave);
-            remover_chave(chave);
+            remover_chave(tabela1, tabela2, chave, n, &ocupacao1, &ocupacao2);
         }
         else if(caractere=='b'){
             scanf("%d", &chave);
-            imprimir_linha(chave);
+            imprimir_linha(tabela1, tabela2, chave, n);
         }
     }
     df_free(tabela1, n);
